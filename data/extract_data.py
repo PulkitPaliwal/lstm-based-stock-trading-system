@@ -15,15 +15,20 @@ import numpy as np
 import argparse 
 # a) Plot the minute-by-minute closing price series of few stocks
 class stock:
-    def __init__(self, stock_name, plot_mode) -> None:
+    def __init__(self, stock_name, plot_mode, verbose) -> None:
         self.stock_name = stock_name
         self.df = None
         self.plot = None
+        self.verbose = verbose
         self.get_df()
-        # self.plot_day_by_day_closing_prices()
-        # self.plot_minute_by_minute_closing_prices()
-        self.plot_candlesticks()
-        self.analyze_missing()
+        if "mbm" in plot_mode:
+            self.plot_minute_by_minute_closing_prices()
+        if "dbd" in plot_mode:
+            self.plot_day_by_day_closing_prices()
+        if "candle" in plot_mode:
+            self.plot_day_candlesticks()
+        if "analyze" in plot_mode:
+            self.analyze_missing()
 
     def get_df(self):
         # text files with data
@@ -34,12 +39,13 @@ class stock:
         df.columns = ['datetime', 'open', 'high', 'low', 'close', 'volume']
         # set index
         df.set_index('datetime', inplace=True)
-        # extract time from datetime
         self.df = df
 
     def plot_minute_by_minute_closing_prices(self):
+        # plot prices corresponing to last trade of every minute
         df = self.df
-        self.plot = df['close'].resample('1Min').mean().dropna().plot(figsize=(15, 5), title=self.stock_name)
+        # resample to get last trade of the minute
+        self.plot = df['close'].resample('1Min').last().dropna().plot(figsize=(15, 5), title=self.stock_name)
         # add title
         self.plot.set_title(self.stock_name + ' minute by minute closing prices')
         # add x label
@@ -52,7 +58,9 @@ class stock:
     def plot_day_by_day_closing_prices(self):
         # plot prices corresponing to last trade everyday
         df = self.df
+        # resample to get last trade of the day
         self.plot = df['close'].resample('D').last().dropna().plot(figsize=(15, 5), title=self.stock_name)
+        # add title
         self.plot.set_title(self.stock_name + ' day by day closing prices')
         # add x labels as dates 
         self.plot.set_xlabel('Day')
@@ -61,30 +69,53 @@ class stock:
         # show plot
         plt.show()
     
-    def plot_candlesticks(self):  
+    def plot_day_candlesticks(self):  
         # plot using plotly's candlestick chart plotting tool
         # visible spaces on the plot are the time periods when the market is closed
-        df = self.df[5000:]   
-        df['high'] = df['high'].resample('D').max()
-        df['low'] = df['low'].resample('D').min()
-        df['open'] = df['open'].resample('D').first()
-        df['close'] = df['close'].resample('D').last()
-        plot = go.Figure(data=[go.Candlestick(x=df.index,
-                open=df['open'],
-                high=df['high'],
-                low=df['low'],
-                close=df['close'])])
-        plot.update_layout(xaxis_rangeslider_visible=False)
+        df = self.df
+        dfN = pd.DataFrame()
+        dfN['high'] = df['high'].resample('D').max().dropna()
+        dfN['low'] = df['low'].resample('D').min().dropna()
+        dfN['open'] = df['open'].resample('D').first().dropna()
+        dfN['close'] = df['close'].resample('D').last().dropna()
+        plot = go.Figure(data=[go.Candlestick(x=dfN.index,
+                open=dfN['open'],
+                high=dfN['high'],
+                low=dfN['low'],
+                close=dfN['close'])])
+        plot.update_layout(xaxis_rangeslider_visible=False, title=self.stock_name + ' candlesticks chart')
         plot.show()
 
     def analyze_missing(self):
         df = self.df
-        # check for missing values
-        # print all NaN closings    
+        # check for dates with trades outside 09:30 to 16:00
+        df['time'] = df.index.time
+        df['date'] = df.index.date
+        for date in df['date'].unique():
+            df_date = df[df['date'] == date]
+            if df_date['time'].max() > pd.Timestamp('16:00:00').time() or df_date['time'].min() < pd.Timestamp('09:30:00').time():
+                if self.verbose:
+                    print("Date with trades outside 09:30 to 16:00:", date)
+        # check for missing dates
+        date_range = pd.date_range(start=df['date'].min(), end=df['date'].max())
+        missing_dates = date_range.difference(df['date'])
+        if self.verbose:
+            print("Missing dates:", missing_dates)
+        # check for missing minutes
+        df['minute'] = df.index.minute
+        for date in df['date'].unique():
+            df_date = df[df['date'] == date]
+            minute_range = pd.date_range(start=df_date.index.min(), end=df_date.index.max(), freq='1Min')
+            missing_minutes = minute_range.difference(df_date.index)
+            if self.verbose:
+                print("Missing minutes on date:", date, missing_minutes)
+
+          
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--stock_name', type=str, default='AAPL_1min')
-    parser.add_argument('--plot_type', type=str, default='day_by_day_closing_prices')
+    parser.add_argument('--plot_type', type=str, default='analyze')
+    parser.add_argument('--verbose', type=bool, default=False)
     args = parser.parse_args()
-    stock_cl = stock(args.stock_name, args.plot_type)
+    stock_cl = stock(args.stock_name, args.plot_type, args.verbose)
     stock_cl.analyze_missing()
