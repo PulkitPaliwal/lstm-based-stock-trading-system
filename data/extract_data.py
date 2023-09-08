@@ -13,9 +13,9 @@ import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
 import argparse 
-# a) Plot the minute-by-minute closing price series of few stocks
+
 class stock:
-    def __init__(self, stock_name, plot_mode, verbose) -> None:
+    def __init__(self, stock_name, plot_mode: str = None, verbose: bool = False) -> None:
         self.stock_name = stock_name
         self.df = None
         self.plot = None
