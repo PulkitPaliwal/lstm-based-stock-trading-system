@@ -21,18 +21,19 @@ class stock:
         self.plot = None
         self.verbose = verbose
         self.get_df()
-        if "mbm" in plot_mode:
-            self.plot_minute_by_minute_closing_prices()
-        if "dbd" in plot_mode:
-            self.plot_day_by_day_closing_prices()
-        if "candle" in plot_mode:
-            self.plot_day_candlesticks()
-        if "analyze" in plot_mode:
-            self.analyze_missing()
+        if plot_mode is not None:
+            if "mbm" in plot_mode:
+                self.plot_minute_by_minute_closing_prices()
+            if "dbd" in plot_mode:
+                self.plot_day_by_day_closing_prices()
+            if "candle" in plot_mode:
+                self.plot_day_candlesticks()
+            if "analyze" in plot_mode:
+                self.analyze_missing()
 
     def get_df(self):
         # text files with data
-        file_name = '/home/pulkit/lstm-based-stock-trading-system/data/sp500_tickers_A-D_1min_1pppix/' + self.stock_name + '.txt'
+        file_name = './data/sp500_tickers_A-D_1min_1pppix/' + self.stock_name + '_1min.txt'
         # read data
         df = pd.read_csv(file_name, sep=',', parse_dates=[0] , header=None)
         # set column names
@@ -113,8 +114,8 @@ class stock:
           
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--stock_name', type=str, default='AAPL_1min')
-    parser.add_argument('--plot_type', type=str, default='analyze')
+    parser.add_argument('--stock_name', type=str, default='AAPL')
+    parser.add_argument('--plot_type', type=str, default='mbm')
     parser.add_argument('--verbose', type=bool, default=False)
     args = parser.parse_args()
     stock_cl = stock(args.stock_name, args.plot_type, args.verbose)
