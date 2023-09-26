@@ -77,7 +77,7 @@ def train(model, train_data, val_data, learning_rate, num_epochs):
 if __name__ == "__main__":
     input_size = 1
     output_size = 1
-    hidden_size = 64
+    hidden_size = 10
     num_layers = 2
     batch_first = True
     dropout = 0.2
